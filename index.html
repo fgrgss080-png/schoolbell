@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="ne">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart School Bell - FGRGSS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // Simple SVG Icons to replace lucide-react (works offline without bundler)
+        const Icons = {
+            Bell: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>,
+            AlertTriangle: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>,
+            Clock: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>,
+            Calendar: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"></rect><line x1="16" x2="16" y1="2" y2="6"></line><line x1="8" x2="8" y1="2" y2="6"></line><line x1="3" x2="21" y1="10" y2="10"></line></svg>,
+            Power: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><line x1="12" x2="12" y1="2" y2="12"></line></svg>,
+            Volume2: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>,
+            Settings: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1Z"></path></svg>,
+            Play: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>,
+            Plus: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" x2="12" y1="5" y2="19"></line><line x1="5" x2="19" y1="12" y2="12"></line></svg>,
+            Trash2: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path><line x1="10" x2="10" y1="11" y2="17"></line><line x1="14" x2="14" y1="11" y2="17"></line></svg>,
+        };
+
+        const App = () => {
+            const [currentTime, setCurrentTime] = useState(new Date());
+            const [systemActive, setSystemActive] = useState(false);
+            const [activeShift, setActiveShift] = useState('day');
+            const [warningBellEnabled, setWarningBellEnabled] = useState(true);
+            const [emergencyActive, setEmergencyActive] = useState(false);
+            const [lastRungTime, setLastRungTime] = useState('');
+            
+            // Long Bell Duration (5 to 8 seconds)
+            const [longBellDuration, setLongBellDuration] = useState(5);
+            
+            // Days of week state (0 = Sunday, 6 = Saturday)
+            const [activeDays, setActiveDays] = useState({
+                0: true, 1: true, 2: true, 3: true, 4: true, 5: true, 6: false
+            });
+
+            // Default schedules
+            const defaultSchedules = {
+                day: [
+                    { id: 1, name: "विद्यालय सुरु (Assembly)", time: "10:00", type: "long", enabled: true },
+                    { id: 2, name: "पहिलो पिरियड", time: "10:15", type: "1", enabled: true },
+                    { id: 3, name: "दोस्रो पिरियड", time: "11:00", type: "2", enabled: true },
+                    { id: 4, name: "तेस्रो पिरियड", time: "11:45", type: "3", enabled: true },
+                    { id: 5, name: "खाजा समय (Break)", time: "12:30", type: "break", enabled: true },
+                    { id: 6, name: "चौथो पिरियड", time: "13:15", type: "4", enabled: true },
+                    { id: 7, name: "पाँचौं पिरियड", time: "14:00", type: "5", enabled: true },
+                    { id: 8, name: "विद्यालय छुट्टी", time: "16:00", type: "long", enabled: true }
+                ],
+                morning: [
+                    { id: 1, name: "विद्यालय सुरु", time: "06:00", type: "long", enabled: true },
+                    { id: 2, name: "पहिलो पिरियड", time: "06:15", type: "1", enabled: true },
+                    { id: 3, name: "दोस्रो पिरियड", time: "07:00", type: "2", enabled: true },
+                    { id: 4, name: "खाजा समय (Break)", time: "07:45", type: "break", enabled: true },
+                    { id: 5, name: "तेस्रो पिरियड", time: "08:15", type: "3", enabled: true },
+                    { id: 6, name: "चौथो पिरियड", time: "09:00", type: "4", enabled: true },
+                    { id: 7, name: "विद्यालय छुट्टी", time: "09:45", type: "long", enabled: true }
+                ]
+            };
+
+            const [schedules, setSchedules] = useState(defaultSchedules);
+            
+            // New period form state
+            const [newPeriod, setNewPeriod] = useState({ name: '', time: '', type: '1' });
+            
+            // Audio context ref
+            const audioCtx = useRef(null);
+            const emergencyInterval = useRef(null);
+
+            // Load from localStorage on mount
+            useEffect(() => {
+                const saved = localStorage.getItem('fgrgssSchedules');
+                if (saved) {
+                    try { setSchedules(JSON.parse(saved)); } catch (e) {}
+                }
+                const savedDays = localStorage.getItem('fgrgssDays');
+                if (savedDays) {
+                    try { setActiveDays(JSON.parse(savedDays)); } catch(e){}
+                }
+                const savedDuration = localStorage.getItem('fgrgssDuration');
+                if(savedDuration) {
+                    setLongBellDuration(Number(savedDuration));
+                }
+            }, []);
+
+            // Save schedules and settings to localStorage when they change
+            useEffect(() => {
+                localStorage.setItem('fgrgssSchedules', JSON.stringify(schedules));
+                localStorage.setItem('fgrgssDays', JSON.stringify(activeDays));
+                localStorage.setItem('fgrgssDuration', longBellDuration.toString());
+            }, [schedules, activeDays, longBellDuration]);
+
+            // Clock timer
+            useEffect(() => {
+                const timer = setInterval(() => {
+                    const now = new Date();
+                    setCurrentTime(now);
+                    checkSchedule(now);
+                }, 1000);
+                return () => clearInterval(timer);
+            }, [systemActive, activeDays, warningBellEnabled, schedules, activeShift, longBellDuration]);
+
+            const initAudio = () => {
+                if (!audioCtx.current) {
+                    audioCtx.current = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (audioCtx.current.state === 'suspended') {
+                    audioCtx.current.resume();
+                }
+                setSystemActive(true);
+            };
+
+            // Audio generation function (Clean Beep)
+            const createBeep = (duration) => {
+                if (!audioCtx.current) return;
+                const oscillator = audioCtx.current.createOscillator();
+                const gainNode = audioCtx.current.createGain();
+                
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(800, audioCtx.current.currentTime);
+                
+                gainNode.gain.setValueAtTime(1, audioCtx.current.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.current.currentTime + duration);
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.current.destination);
+                
+                oscillator.start();
+                oscillator.stop(audioCtx.current.currentTime + duration);
+            };
+
+            const playBell = (type, isEmergency = false) => {
+                if (!systemActive) return;
+                
+                // Use dynamic longBellDuration instead of fixed 3.5s
+                if (type === 'long' || type === 'break') {
+                    createBeep(longBellDuration); 
+                    return;
+                }
+                
+                if (type === 'warning') {
+                    createBeep(1.5);
+                    return;
+                }
+                
+                let strikes = parseInt(type) || 1;
+                for (let i = 0; i < strikes; i++) {
+                    setTimeout(() => createBeep(0.7), i * 1200);
+                }
+            };
+
+            const toggleEmergency = () => {
+                if (emergencyActive) {
+                    clearInterval(emergencyInterval.current);
+                    setEmergencyActive(false);
+                } else {
+                    setEmergencyActive(true);
+                    playBell('long'); // Play with user-set duration
+                    emergencyInterval.current = setInterval(() => playBell('long'), longBellDuration * 1000 + 500); 
+                }
+            };
+
+            const checkSchedule = (now) => {
+                if (!systemActive || emergencyActive) return;
+                
+                const currentDay = now.getDay();
+                if (!activeDays[currentDay]) return; // Today is toggled OFF
+                
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                const seconds = String(now.getSeconds()).padStart(2, '0');
+                const timeString = `${hours}:${minutes}`;
+                
+                if (seconds === '00' && timeString !== lastRungTime) {
+                    schedules[activeShift].forEach(period => {
+                        if (!period.enabled) return;
+                        
+                        // Main period bell
+                        if (period.time === timeString) {
+                            playBell(period.type);
+                            setLastRungTime(timeString);
+                        }
+                        
+                        // Warning bell (5 minutes before)
+                        if (warningBellEnabled && period.type !== 'break' && period.type !== 'long') {
+                            const [pH, pM] = period.time.split(':').map(Number);
+                            const periodTime = new Date(now);
+                            periodTime.setHours(pH, pM, 0);
+                            
+                            const warningTime = new Date(periodTime.getTime() - 5 * 60000);
+                            const wH = String(warningTime.getHours()).padStart(2, '0');
+                            const wM = String(warningTime.getMinutes()).padStart(2, '0');
+                            
+                            if (`${wH}:${wM}` === timeString) {
+                                playBell('warning');
+                                setLastRungTime(timeString);
+                            }
+                        }
+                    });
+                }
+            };
+
+            const handleAddPeriod = (e) => {
+                e.preventDefault();
+                if (!newPeriod.name || !newPeriod.time) return;
+                
+                const updatedShift = [...schedules[activeShift], {
+                    id: Date.now(),
+                    name: newPeriod.name,
+                    time: newPeriod.time,
+                    type: newPeriod.type,
+                    enabled: true
+                }].sort((a, b) => a.time.localeCompare(b.time));
+                
+                setSchedules({...schedules, [activeShift]: updatedShift});
+                setNewPeriod({ name: '', time: '', type: '1' });
+            };
+
+            const togglePeriod = (id) => {
+                const updatedShift = schedules[activeShift].map(p => 
+                    p.id === id ? { ...p, enabled: !p.enabled } : p
+                );
+                setSchedules({...schedules, [activeShift]: updatedShift});
+            };
+
+            const deletePeriod = (id) => {
+                if (window.confirm("के तपाईं यो पिरियड हटाउन निश्चित हुनुहुन्छ?")) {
+                    const updatedShift = schedules[activeShift].filter(p => p.id !== id);
+                    setSchedules({...schedules, [activeShift]: updatedShift});
+                }
+            };
+            
+            const toggleDay = (dayIndex) => {
+                setActiveDays({...activeDays, [dayIndex]: !activeDays[dayIndex]});
+            };
+
+            const dayNames = ['आइतबार', 'सोमबार', 'मंगलबार', 'बुधबार', 'बिहीबार', 'शुक्रबार', 'शनिबार'];
+
+            return (
+                <div className="max-w-6xl mx-auto p-4 md:p-6 font-sans">
+                    {/* Header */}
+                    <div className="text-center mb-8 bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                        <h1 className="text-3xl font-bold text-blue-700 mb-2">श्री फकिरा गिरी राजेश्वर गिरी माध्यमिक विद्यालय</h1>
+                        <p className="text-gray-600 text-lg flex items-center justify-center gap-2">
+                            <Icons.Calendar />
+                            नगौल, जीतपुर सिमरा-७, बारा
+                        </p>
+                    </div>
+
+                    {!systemActive ? (
+                        <div className="bg-white p-12 rounded-xl shadow-sm border border-gray-100 text-center">
+                            <Icons.Volume2 />
+                            <h2 className="text-2xl font-bold text-gray-800 mb-4 mt-4">अटोमेटिक घण्टी सुरु गर्नुहोस्</h2>
+                            <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                                ब्राउजरको नियमअनुसार घण्टी बजाउनको लागि तपाईंले एकपटक यो बटन थिच्नुपर्छ। 
+                                यो ट्याब बन्द नगरेसम्म घण्टी आफैं बजिरहन्छ।
+                            </p>
+                            <button 
+                                onClick={initAudio}
+                                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-full text-xl shadow-lg transition transform hover:scale-105 flex items-center gap-3 mx-auto"
+                            >
+                                <Icons.Power />
+                                सिस्टम सक्रिय गर्नुहोस्
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            {/* Left Column: Clock & Controls */}
+                            <div className="lg:col-span-1 space-y-6">
+                                {/* Clock Card */}
+                                <div className="bg-blue-600 text-white p-6 rounded-xl shadow-md text-center">
+                                    <div className="flex justify-center mb-2"><Icons.Clock /></div>
+                                    <div className="text-5xl font-bold mb-2 tracking-wider">
+                                        {currentTime.toLocaleTimeString('en-US', { hour12: false })}
+                                    </div>
+                                    <div className="text-blue-100 text-lg">
+                                        {currentTime.toLocaleDateString('ne-NP', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                                    </div>
+                                </div>
+
+                                {/* Emergency Button */}
+                                <button 
+                                    onClick={toggleEmergency}
+                                    className={`w-full p-6 rounded-xl shadow-md font-bold text-xl flex flex-col items-center justify-center gap-3 transition ${
+                                        emergencyActive 
+                                        ? 'bg-red-700 text-white animate-pulse' 
+                                        : 'bg-red-500 text-white hover:bg-red-600'
+                                    }`}
+                                >
+                                    <Icons.AlertTriangle />
+                                    {emergencyActive ? 'इमेर्जेन्सी बन्द गर्नुहोस्' : 'इमेर्जेन्सी घण्टी'}
+                                </button>
+                                
+                                {/* System Settings */}
+                                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                                    <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                        <Icons.Settings /> प्रणाली सेटिङ्स
+                                    </h3>
+                                    
+                                    {/* Slider for Long Bell Duration */}
+                                    <div className="mb-6 bg-gray-50 p-4 rounded-lg">
+                                        <label className="flex justify-between items-center text-gray-700 font-medium mb-2">
+                                            <span>लामो घण्टीको समय:</span>
+                                            <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm font-bold">{longBellDuration} सेकेन्ड</span>
+                                        </label>
+                                        <input 
+                                            type="range" 
+                                            min="5" 
+                                            max="8" 
+                                            step="1"
+                                            value={longBellDuration} 
+                                            onChange={(e) => setLongBellDuration(Number(e.target.value))}
+                                            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                                        />
+                                        <p className="text-xs text-gray-500 mt-2">विद्यालय सुरु, खाजा, छुट्टी र इमेर्जेन्सीको घण्टी कति लामो बजाउने।</p>
+                                    </div>
+
+                                    <label className="flex items-center justify-between p-3 bg-gray-50 rounded-lg cursor-pointer">
+                                        <span className="font-medium text-gray-700">५ मिनेट जनाउ घण्टी</span>
+                                        <input 
+                                            type="checkbox" 
+                                            checked={warningBellEnabled} 
+                                            onChange={(e) => setWarningBellEnabled(e.target.checked)}
+                                            className="w-5 h-5 text-blue-600"
+                                        />
+                                    </label>
+                                    
+                                    <div className="mt-6">
+                                        <h4 className="text-sm font-bold text-gray-500 uppercase mb-3 tracking-wider">सक्रिय दिनहरू (Active Days)</h4>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            {dayNames.map((day, idx) => (
+                                                <label key={idx} className={`flex items-center justify-between p-2 rounded-lg cursor-pointer border ${activeDays[idx] ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50'}`}>
+                                                    <span className={`text-sm ${activeDays[idx] ? 'text-green-800 font-medium' : 'text-gray-500'}`}>{day}</span>
+                                                    <input 
+                                                        type="checkbox" 
+                                                        checked={activeDays[idx]}
+                                                        onChange={() => toggleDay(idx)}
+                                                        className="w-4 h-4 text-green-600 rounded"
+                                                    />
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Right Column: Schedule Management */}
+                            <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                                {/* Shift Tabs */}
+                                <div className="flex border-b">
+                                    <button 
+                                        className={`flex-1 py-4 font-bold text-lg ${activeShift === 'day' ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-600' : 'text-gray-500 hover:bg-gray-50'}`}
+                                        onClick={() => setActiveShift('day')}
+                                    >
+                                        दिवा सिफ्ट (Day)
+                                    </button>
+                                    <button 
+                                        className={`flex-1 py-4 font-bold text-lg ${activeShift === 'morning' ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-600' : 'text-gray-500 hover:bg-gray-50'}`}
+                                        onClick={() => setActiveShift('morning')}
+                                    >
+                                        बिहानी सिफ्ट (Morning)
+                                    </button>
+                                </div>
+
+                                <div className="p-6">
+                                    {/* Add Period Form */}
+                                    <form onSubmit={handleAddPeriod} className="flex flex-wrap gap-3 mb-8 bg-gray-50 p-4 rounded-lg border border-gray-100">
+                                        <input 
+                                            type="text" 
+                                            placeholder="पिरियडको नाम" 
+                                            required
+                                            value={newPeriod.name}
+                                            onChange={e => setNewPeriod({...newPeriod, name: e.target.value})}
+                                            className="flex-1 p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                                        />
+                                        <input 
+                                            type="time" 
+                                            required
+                                            value={newPeriod.time}
+                                            onChange={e => setNewPeriod({...newPeriod, time: e.target.value})}
+                                            className="w-32 p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                                        />
+                                        <select 
+                                            value={newPeriod.type}
+                                            onChange={e => setNewPeriod({...newPeriod, type: e.target.value})}
+                                            className="p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                                        >
+                                            <option value="1">१ घण्टी</option>
+                                            <option value="2">२ घण्टी</option>
+                                            <option value="3">३ घण्टी</option>
+                                            <option value="4">४ घण्टी</option>
+                                            <option value="5">५ घण्टी</option>
+                                            <option value="6">६ घण्टी</option>
+                                            <option value="7">७ घण्टी</option>
+                                            <option value="8">८ घण्टी</option>
+                                            <option value="long">लामो घण्टी (सुरु/छुट्टी)</option>
+                                            <option value="break">खाजा समय (Break)</option>
+                                        </select>
+                                        <button type="submit" className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded font-bold flex items-center gap-1 transition">
+                                            <Icons.Plus /> थप्नुहोस्
+                                        </button>
+                                    </form>
+
+                                    {/* Schedule Table */}
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-left">
+                                            <thead>
+                                                <tr className="bg-gray-100 text-gray-600 text-sm">
+                                                    <th className="p-3 rounded-tl-lg">समय</th>
+                                                    <th className="p-3">पिरियडको नाम</th>
+                                                    <th className="p-3">घण्टी प्रकार</th>
+                                                    <th className="p-3 text-center">ON/OFF</th>
+                                                    <th className="p-3 text-right rounded-tr-lg">कार्य</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {schedules[activeShift].map((period) => (
+                                                    <tr key={period.id} className={`border-b last:border-0 hover:bg-gray-50 ${!period.enabled ? 'opacity-50' : ''}`}>
+                                                        <td className="p-3 font-bold text-blue-700 text-lg">{period.time}</td>
+                                                        <td className="p-3 font-medium text-gray-800">{period.name}</td>
+                                                        <td className="p-3">
+                                                            <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-sm font-medium">
+                                                                {period.type === 'long' ? 'लामो घण्टी' : 
+                                                                 period.type === 'break' ? 'खाजा समय' : 
+                                                                 `${period.type} घण्टी`}
+                                                            </span>
+                                                        </td>
+                                                        <td className="p-3 text-center">
+                                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                                <input 
+                                                                    type="checkbox" 
+                                                                    className="sr-only peer"
+                                                                    checked={period.enabled}
+                                                                    onChange={() => togglePeriod(period.id)}
+                                                                />
+                                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
+                                                            </label>
+                                                        </td>
+                                                        <td className="p-3 text-right">
+                                                            <div className="flex justify-end gap-2">
+                                                                <button 
+                                                                    onClick={() => playBell(period.type)}
+                                                                    className="p-2 text-blue-600 hover:bg-blue-100 rounded transition"
+                                                                    title="बजाएर जाँच्नुहोस्"
+                                                                >
+                                                                    <Icons.Play />
+                                                                </button>
+                                                                <button 
+                                                                    onClick={() => deletePeriod(period.id)}
+                                                                    className="p-2 text-red-500 hover:bg-red-100 rounded transition"
+                                                                    title="हटाउनुहोस्"
+                                                                >
+                                                                    <Icons.Trash2 />
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                                {schedules[activeShift].length === 0 && (
+                                                    <tr>
+                                                        <td colSpan="5" className="text-center p-8 text-gray-500">
+                                                            यो सिफ्टमा कुनै पिरियड थपिएको छैन।
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
